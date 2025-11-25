@@ -21,8 +21,8 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	})
 }
 
-func (cfg *apiConfig) getHits() string {
-	hitsMessage := fmt.Sprintf("Hits: %v \n", int(cfg.fileServerHits.Load()))
+func (cfg *apiConfig) getHits() int {
+	hitsMessage := int(cfg.fileServerHits.Load())
 	return hitsMessage
 }
 
@@ -65,20 +65,26 @@ func main(){
 	
 	server_mux.Handle("/app/",wrappedHandler)
 
-	server_mux.HandleFunc("GET /healthz",func(w http.ResponseWriter, r *http.Request) {
+	server_mux.HandleFunc("GET /api/healthz",func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type","text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 		
 	})
 
-	server_mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type","text/plain; charset=utf-8")
+	server_mux.HandleFunc("GET /admin/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type","text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(config.getHits()))
+		strResponse := fmt.Sprintf(`<html>
+		<body>
+    		<h1>Welcome, Chirpy Admin</h1>
+    		<p>Chirpy has been visited %d times!</p>
+  		</body>
+		</html>`, config.getHits())
+		w.Write([]byte(strResponse))
 	})
 
-	server_mux.HandleFunc("POST /reset", func(w http.ResponseWriter, r *http.Request) {
+	server_mux.HandleFunc("POST /admin/reset", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type","text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		config.resetHits()
