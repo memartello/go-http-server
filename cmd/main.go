@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync/atomic"
 )
 
@@ -51,6 +53,53 @@ func noCacheHandler(h http.Handler) http.Handler {
 	})
 }
 
+type Parameters struct {
+	Body string `json:"body"`
+}
+
+type ErrorMessage struct{
+	Error string `json:"error"`
+}
+
+type Response struct {
+	CleanedBody string `json:"cleaned_body"`
+}
+
+func respondWithError(w http.ResponseWriter, code int, msg string){
+	msgError := ErrorMessage{
+		Error: msg,
+	}
+	dat, _ := json.Marshal(msgError)
+	
+	w.WriteHeader(code)
+	w.Write(dat)
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}){
+	data, _ := json.Marshal(payload)
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+var profaneWords = []string{"kerfuffle","sharbert","fornax"}
+
+func cleanedString (str string) string{
+	str_list := strings.Split(str, " ")
+	for i, v := range str_list{
+		for _, prof := range profaneWords{
+			if strings.ToLower(v) == prof {
+				str_list[i] = "****"
+				break
+			}
+		}
+	}
+
+	str = strings.Join(str_list, " ")
+
+	return  str
+}
+
+
 func main(){
 	server_mux := http.NewServeMux()
  	server := &http.Server{
@@ -88,6 +137,37 @@ func main(){
 		w.Header().Add("Content-Type","text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		config.resetHits()
+	})
+
+	
+	server_mux.HandleFunc("POST /api/validate_chirp", func(w http.ResponseWriter, r *http.Request) {
+
+		var parameters Parameters
+
+		w.Header().Set("Content-Type","application/json")
+		decoder := json.NewDecoder(r.Body)
+
+		if err := decoder.Decode(&parameters); err != nil{
+			log.Printf("Error decoding parameters: %s",err)
+			respondWithError(w, http.StatusInternalServerError, "Something went wrong!")
+			return
+		}
+
+		if parameters.Body == "" {
+			respondWithError(w, http.StatusBadRequest, "You need to specify the body.")
+			return
+		}
+
+		if len(parameters.Body) > 140 {
+			respondWithError(w, http.StatusBadRequest, "Chirp is too long.")
+			return
+		}
+		
+		res := Response{
+			CleanedBody: cleanedString(parameters.Body),
+		}
+
+		respondWithJSON(w, http.StatusOK, res)
 	})
 	err := server.ListenAndServe()
 
