@@ -14,17 +14,27 @@ type ValidateChirpRequest struct {
 	Body string `json:"body"`
 }
 
+type TokenRespone struct {
+	Token string `json:"token"`
+}
 
 type NewUserRequest struct {
 	Email string `json:"email"`
+	Password string `json:"password"`
 }
 
-
+type UserLoginRequest NewUserRequest
 type NewUserResponse struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+}
+
+type UserResponse struct {
+	NewUserResponse
+	Token string `json:"token"`	
+	RefreshToken string `json:"refresh_token"`
 }
 
 type ErrorMessage struct{
@@ -34,7 +44,6 @@ type ErrorMessage struct{
 
 type NewChirpRequest struct {
 	Body string `json:"body"`
-	UserID uuid.UUID `json:"user_id"`
 }
 
 type NewChirpResponse struct {

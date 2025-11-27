@@ -3,6 +3,8 @@ package api
 import (
 	"log"
 	"net/http"
+
+	"github.com/memartello/go-http-server/internal/auth"
 )
 
 func LogMiddleware(next http.Handler) http.Handler {
@@ -29,6 +31,36 @@ func (api *API) MetricsIncMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
 		api.fileServerHits.Add(1)
 		log.Println(api.getHits())
+		next.ServeHTTP(w,r)
+	})
+}
+
+
+// type ctxKey string
+
+// const userCtxKey ctxKey = "user"
+// func UserFromContext(ctx context.Context) (string, bool) {
+//     userID, ok := ctx.Value(userCtxKey).(string)
+//     return userID, ok
+// }
+// TODO Save user in the context.auth.UserFromContext(r.Context())
+func (api *API) AuthMiddleware(next http.Handler) http.Handler{
+	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
+		jwt, err := auth.GetBearerToken(r.Header)
+
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized ,"No authorization header is present")
+			return
+		}
+
+		_, err = auth.ValidateJWT(jwt, api.secret)
+
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized ,"Invalid JWT")
+			return
+		}
+		//TODO: Check user in DB and send to
+		
 		next.ServeHTTP(w,r)
 	})
 }

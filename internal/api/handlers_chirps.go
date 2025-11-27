@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/memartello/go-http-server/internal/auth"
 	"github.com/memartello/go-http-server/internal/database"
 )
 
@@ -72,6 +73,20 @@ func (api *API) CreateChirp(w http.ResponseWriter, r *http.Request){
 
 	w.Header().Set("Content-Type","application/json")
 
+	jwt, err := auth.GetBearerToken(r.Header)
+
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized ,"No authorization header is present")
+		return
+	}
+
+	user_uuid, err := auth.ValidateJWT(jwt, api.secret)
+
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized ,"Invalid JWT")
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	
 	if err := decoder.Decode(&parameters); err != nil {
@@ -85,12 +100,7 @@ func (api *API) CreateChirp(w http.ResponseWriter, r *http.Request){
 		return
 	}
 
-	if parameters.UserID == uuid.Nil {
-		RespondWithError(w, http.StatusBadRequest, "User can not be empty")
-		return
-	}
-
-	_, err := api.dbQueries.GetUser(r.Context(), parameters.UserID)
+	_, err = api.dbQueries.GetUser(r.Context(), user_uuid)
 
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "User not found")
@@ -98,7 +108,7 @@ func (api *API) CreateChirp(w http.ResponseWriter, r *http.Request){
 	}
 
 	newChirp, err := api.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
-		UserID: parameters.UserID,
+		UserID: user_uuid,
 		Body: parameters.Body,
 	})
 

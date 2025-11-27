@@ -17,6 +17,7 @@ import (
 func main(){
 	godotenv.Load()
 	dbUrl := os.Getenv("DB_URL")
+	token_env := os.Getenv("JWT_TOKEN")
 	fmt.Println(dbUrl)
 
 	db, err := sql.Open("postgres", dbUrl)
@@ -27,7 +28,7 @@ func main(){
 	dbQueries := database.New(db)
 	
 	
-	api := api_service.NewAPI(dbQueries)
+	api := api_service.NewAPI(dbQueries, token_env)
 	
 	server_mux := http.NewServeMux()
  	server := &http.Server{
@@ -59,6 +60,9 @@ func main(){
 	server_mux.HandleFunc("POST /api/chirps", api.CreateChirp)
 	server_mux.HandleFunc("GET /api/chirps", api.GetChirps)
 	server_mux.HandleFunc("GET /api/chirps/{chirpID}", api.GetChirp)
+	server_mux.HandleFunc("POST /api/login", api.Login)
+	server_mux.HandleFunc("POST /api/refresh", api.Refresh)
+	server_mux.HandleFunc("POST /api/revoke", api.Revoke)
 	
 	server.ListenAndServe()
 
