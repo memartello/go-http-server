@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 
 	"github.com/google/uuid"
 	"github.com/memartello/go-http-server/internal/database"
@@ -50,20 +51,49 @@ func (api *API) GetChirps(w http.ResponseWriter, r *http.Request){
 		return
 	}
 
+	s := r.URL.Query().Get("author_id")
+
 	response_chirps := make([]NewChirpResponse, 0, len(chirps))
 
 	for _, chirp := range chirps {
-		response_chirps = append(
-			response_chirps,
-			NewChirpResponse{
-				Body: chirp.Body,
-				ID: chirp.ID,
-				CreatedAt: chirp.CreatedAt.Time,
-				UpdatedAt: chirp.UpdatedAt.Time,
-				UserID: chirp.UserID.String(),
-			},
+		if s != ""{
+			if chirp.UserID.String() == s {
+				response_chirps = append(
+				response_chirps,
+				NewChirpResponse{
+					Body: chirp.Body,
+					ID: chirp.ID,
+					CreatedAt: chirp.CreatedAt.Time,
+					UpdatedAt: chirp.UpdatedAt.Time,
+					UserID: chirp.UserID.String(),
+				},
 		)
+			}
+
+		}else{
+			response_chirps = append(
+				response_chirps,
+				NewChirpResponse{
+					Body: chirp.Body,
+					ID: chirp.ID,
+					CreatedAt: chirp.CreatedAt.Time,
+					UpdatedAt: chirp.UpdatedAt.Time,
+					UserID: chirp.UserID.String(),
+				},
+		)
+		}
+		
 	}
+	sort_direction := r.URL.Query().Get("sort") //asc or desc
+
+	sort.Slice(response_chirps, func(i, j int) bool {
+		if sort_direction == "asc" {
+			return response_chirps[i].CreatedAt.Before(response_chirps[j].CreatedAt)
+		}else{
+			return response_chirps[i].CreatedAt.After(response_chirps[j].CreatedAt)
+		}
+	})
+
 
 	RespondWithJSON(w, http.StatusOK, response_chirps)
 }
