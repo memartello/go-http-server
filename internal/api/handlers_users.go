@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/memartello/go-http-server/internal/auth"
 	"github.com/memartello/go-http-server/internal/database"
 )
@@ -165,4 +166,47 @@ func (api *API) Revoke(w http.ResponseWriter, r *http.Request){
 	RespondWithJSON(w, http.StatusNoContent, TokenRespone{
 		Token: jwt,
 	})
+}
+
+
+func (api *API) UpdateUser(w http.ResponseWriter, r *http.Request){
+	user_uuid, ok := UserFromContext(r.Context())
+	if !ok {
+		RespondWithError(w,http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	var parameters UpdateUserRequest
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&parameters); err != nil {
+		RespondWithError(w,http.StatusBadRequest, "Invalid parameters")
+		return
+	}
+	_, err := api.dbQueries.GetUser(r.Context(),uuid.MustParse(user_uuid))
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "User not found")
+	}
+
+	hashed_password, _ := auth.HashPassword(parameters.Password)
+
+	update_user, err := api.dbQueries.UpdateUser(r.Context(), database.UpdateUserParams{
+		ID: uuid.MustParse(user_uuid),
+		Email: parameters.Email,
+		HashedPassword: hashed_password,
+	})
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error updating user")
+	}
+
+	user_response := NewUserResponse{
+		ID: update_user.ID,
+		Email: update_user.Email,
+		CreatedAt: update_user.CreatedAt.Time,
+		UpdatedAt: update_user.UpdatedAt.Time,
+	}
+
+	RespondWithJSON(w, http.StatusOK, user_response)
+
 }

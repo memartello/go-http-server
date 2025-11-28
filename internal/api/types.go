@@ -23,6 +23,8 @@ type NewUserRequest struct {
 	Password string `json:"password"`
 }
 
+type UpdateUserRequest NewUserRequest
+
 type UserLoginRequest NewUserRequest
 type NewUserResponse struct {
 	ID        uuid.UUID `json:"id"`

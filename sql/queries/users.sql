@@ -9,3 +9,6 @@ SELECT * FROM users WHERE users.id = $1;
 
 -- name: GetByEmail :one
 SELECT * FROM users WHERE users.email = $1;
+
+-- name: UpdateUser :one
+UPDATE users SET email = $2, hashed_password = $3 WHERE id = $1 RETURNING *;

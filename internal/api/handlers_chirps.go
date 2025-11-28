@@ -148,3 +148,38 @@ func (api *API) GetChirp(w http.ResponseWriter, r *http.Request){
 
 	RespondWithJSON(w, http.StatusOK, chirpResponse)
 }
+
+func (api *API) DeleteChirp(w http.ResponseWriter, r *http.Request){
+	value := r.PathValue("chirpID")
+
+	if value == "" {
+		RespondWithError(w, http.StatusBadRequest, "Needs to specify the Chirp ID")
+		return
+	}
+
+	user_uuid, ok := UserFromContext(r.Context())
+	if !ok {
+		RespondWithError(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	db_chirp, err := api.dbQueries.GetChirp(r.Context(), uuid.MustParse(value))
+
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "Chirp not exist")
+		return
+	}
+
+	if user_uuid != db_chirp.UserID.String() {
+		RespondWithError(w, http.StatusForbidden, "You are not the owner of the chirp")
+		return
+	}
+
+	err = api.dbQueries.DeleteChirp(r.Context(), uuid.MustParse(value))
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "An error ocurred")
+		return
+	}
+	RespondWithJSON(w,http.StatusNoContent,nil)
+}
