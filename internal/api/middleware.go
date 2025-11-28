@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -36,14 +38,6 @@ func (api *API) MetricsIncMiddleware(next http.Handler) http.Handler {
 }
 
 
-// type ctxKey string
-
-// const userCtxKey ctxKey = "user"
-// func UserFromContext(ctx context.Context) (string, bool) {
-//     userID, ok := ctx.Value(userCtxKey).(string)
-//     return userID, ok
-// }
-// TODO Save user in the context.auth.UserFromContext(r.Context())
 func (api *API) AuthMiddleware(next http.Handler) http.Handler{
 	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
 		jwt, err := auth.GetBearerToken(r.Header)
@@ -53,13 +47,17 @@ func (api *API) AuthMiddleware(next http.Handler) http.Handler{
 			return
 		}
 
-		_, err = auth.ValidateJWT(jwt, api.secret)
+		user_uuid, err := auth.ValidateJWT(jwt, api.secret)
 
 		if err != nil {
 			RespondWithError(w, http.StatusUnauthorized ,"Invalid JWT")
 			return
 		}
 		//TODO: Check user in DB and send to
+		fmt.Printf("user Context %s, user_uuid: %s", userCtxKey, user_uuid)
+
+		ctx := context.WithValue(r.Context(), userCtxKey, user_uuid.String())
+		r = r.WithContext(ctx)
 		
 		next.ServeHTTP(w,r)
 	})

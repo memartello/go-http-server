@@ -57,12 +57,12 @@ func main(){
 	})
 	server_mux.HandleFunc("POST /api/users", api.CreateUser)
 	server_mux.HandleFunc("POST /api/validate_chirp", api.ValidateChirp)
-	server_mux.HandleFunc("POST /api/chirps", api.CreateChirp)
+	server_mux.Handle("POST /api/chirps", api.AuthMiddleware(http.HandlerFunc(api.CreateChirp)))
 	server_mux.HandleFunc("GET /api/chirps", api.GetChirps)
 	server_mux.HandleFunc("GET /api/chirps/{chirpID}", api.GetChirp)
 	server_mux.HandleFunc("POST /api/login", api.Login)
 	server_mux.HandleFunc("POST /api/refresh", api.Refresh)
-	server_mux.HandleFunc("POST /api/revoke", api.Revoke)
+	server_mux.Handle("POST /api/revoke", api.AuthMiddleware(http.HandlerFunc(api.Revoke)))
 	
 	server.ListenAndServe()
 

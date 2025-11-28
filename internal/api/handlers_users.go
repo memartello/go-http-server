@@ -76,8 +76,6 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request){
 
 		
 		expiresAt := time.Now().Add(24 * 60 * time.Hour) 
-
-		log.Printf("Expires at: ", expiresAt)
 		api.dbQueries.CreateRefreshToken(r.Context(),database.CreateRefreshTokenParams{
 			Token: refresh_token,
 			UserID: db_user.ID,

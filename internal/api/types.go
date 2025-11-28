@@ -53,3 +53,7 @@ type NewChirpResponse struct {
 	Body string `json:"body"`
 	UserID string `json:"user_id"`
 }
+
+type ctxKey string
+
+const userCtxKey ctxKey = "user_uuid"

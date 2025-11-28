@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -39,4 +41,11 @@ func CleanedString (str string) string{
 	str = strings.Join(str_list, " ")
 
 	return  str
+}
+
+func UserFromContext(ctx context.Context) (string, bool) {
+	
+	userID, ok := ctx.Value(userCtxKey).(string)
+	fmt.Printf("Gettin value from context %s \n",userID)
+    return userID, ok
 }
