@@ -70,6 +70,7 @@ func ValidateJWT (tokenString, tokenSecret string) (uuid.UUID, error){
 
 
 func GetBearerToken (headers http.Header) (string, error){
+	//TODO: Check that is Bearer
 	authorization_header := headers.Get("Authorization")
 
 	if authorization_header == "" {
@@ -89,4 +90,18 @@ func MakeRefreshToken() (string, error ){
 	refresh := hex.EncodeToString(key)
 	
 	return  refresh, nil
+}
+
+
+func GetAPIKey(headers http.Header) (string, error){
+	authorization_header := headers.Get("Authorization")
+	//TODO: Check that is apiKey
+
+	if authorization_header == "" {
+		return "", fmt.Errorf("authorization header is not present")
+	}
+
+	stripped_header := strings.Split(authorization_header, " ")[1]
+
+	return stripped_header, nil
 }

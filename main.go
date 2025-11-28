@@ -18,6 +18,7 @@ func main(){
 	godotenv.Load()
 	dbUrl := os.Getenv("DB_URL")
 	token_env := os.Getenv("JWT_TOKEN")
+	polka_key := os.Getenv("POLKA_KEY")
 	fmt.Println(dbUrl)
 
 	db, err := sql.Open("postgres", dbUrl)
@@ -28,7 +29,7 @@ func main(){
 	dbQueries := database.New(db)
 	
 	
-	api := api_service.NewAPI(dbQueries, token_env)
+	api := api_service.NewAPI(dbQueries, token_env, polka_key)
 	
 	server_mux := http.NewServeMux()
  	server := &http.Server{
@@ -65,7 +66,7 @@ func main(){
 	server_mux.HandleFunc("POST /api/login", api.Login)
 	server_mux.HandleFunc("POST /api/refresh", api.Refresh)
 	server_mux.Handle("POST /api/revoke", api.AuthMiddleware(http.HandlerFunc(api.Revoke)))
-	
+	server_mux.HandleFunc("POST /api/polka/webhooks", api.UpgradeUser)
 	
 	
 	server.ListenAndServe()

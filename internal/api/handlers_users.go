@@ -31,12 +31,8 @@ func (api *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 			HashedPassword: hashed_password,
 		})
 
-		user_created := NewUserResponse{
-			ID: db_user.ID,
-			CreatedAt: db_user.CreatedAt.Time,
-			UpdatedAt: db_user.UpdatedAt.Time,
-			Email: db_user.Email,
-		}
+		user_created := ConvertToResponseUser(&db_user)
+
 		if err != nil {
 			log.Printf("Error creating user: %s",err)
 			RespondWithError(w, http.StatusInternalServerError, "Something went wrong!")
@@ -98,10 +94,12 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request){
 				CreatedAt: db_user.CreatedAt.Time,
 				UpdatedAt: db_user.UpdatedAt.Time,
 				Email: db_user.Email,
+				IsChirpyRed: db_user.IsChirpyRed,
 			},
 			token,
 			refresh_token,
 		}
+		
 
 		RespondWithJSON(w, http.StatusOK, user)
 
@@ -200,13 +198,49 @@ func (api *API) UpdateUser(w http.ResponseWriter, r *http.Request){
 		RespondWithError(w, http.StatusInternalServerError, "Error updating user")
 	}
 
-	user_response := NewUserResponse{
-		ID: update_user.ID,
-		Email: update_user.Email,
-		CreatedAt: update_user.CreatedAt.Time,
-		UpdatedAt: update_user.UpdatedAt.Time,
-	}
+	user_response := ConvertToResponseUser(&update_user)
 
 	RespondWithJSON(w, http.StatusOK, user_response)
+
+}
+
+func (api *API) UpgradeUser(w http.ResponseWriter, r *http.Request){
+
+	var parameters HookEvent
+
+	api_key, _ := auth.GetAPIKey(r.Header)
+
+	if api_key != api.polka_key {
+		RespondWithError(w, http.StatusUnauthorized, "Error in the api key")
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&parameters); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Error in the parameters")
+		return
+	}
+
+	if parameters.Event != UserUpgraded {
+		RespondWithJSON(w, http.StatusNoContent, nil)
+		return
+	}
+
+	_, err := api.dbQueries.GetUser(r.Context(), uuid.MustParse(parameters.Data.UserID))
+
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	_, err = api.dbQueries.UpgradeUserRed(r.Context(),uuid.MustParse(parameters.Data.UserID))
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error trying to upgrade user: " + err.Error())
+		return
+	}
+
+	RespondWithJSON(w, http.StatusNoContent, nil)
+
 
 }

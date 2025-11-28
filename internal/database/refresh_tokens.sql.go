@@ -41,7 +41,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 }
 
 const getUserByToken = `-- name: GetUserByToken :one
-SELECT refresh_tokens.token, refresh_tokens.user_id, refresh_tokens.created_at, refresh_tokens.updated_at, refresh_tokens.expires_at, refresh_tokens.revoked_at, users.id, users.email, users.created_at, users.updated_at, users.hashed_password FROM refresh_tokens JOIN users ON users.id = refresh_tokens.user_id WHERE refresh_tokens.token = $1 LIMIT 1
+SELECT refresh_tokens.token, refresh_tokens.user_id, refresh_tokens.created_at, refresh_tokens.updated_at, refresh_tokens.expires_at, refresh_tokens.revoked_at, users.id, users.email, users.created_at, users.updated_at, users.hashed_password, users.is_chirpy_red FROM refresh_tokens JOIN users ON users.id = refresh_tokens.user_id WHERE refresh_tokens.token = $1 LIMIT 1
 `
 
 type GetUserByTokenRow struct {
@@ -56,6 +56,7 @@ type GetUserByTokenRow struct {
 	CreatedAt_2    sql.NullTime
 	UpdatedAt_2    sql.NullTime
 	HashedPassword string
+	IsChirpyRed    bool
 }
 
 func (q *Queries) GetUserByToken(ctx context.Context, token string) (GetUserByTokenRow, error) {
@@ -73,6 +74,7 @@ func (q *Queries) GetUserByToken(ctx context.Context, token string) (GetUserByTo
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
